@@ -1,0 +1,48 @@
+from flask import Flask, request, render_template
+import requests
+from bs4 import BeautifulSoup
+from deep_translator import GoogleTranslator
+import urllib.parse
+
+app = Flask(__name__)
+
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)..."
+
+def extract_real_url(ddg_url):
+    if "uddg=" in ddg_url:
+        parsed = urllib.parse.urlparse(ddg_url)
+        query = urllib.parse.parse_qs(parsed.query)
+        return urllib.parse.unquote(query.get("uddg", [""])[0])
+    return ddg_url
+
+def search_urls(query, max_results=3):
+    search_url = f"https://duckduckgo.com/html/?q={urllib.parse.quote(query)}"
+    resp = requests.get(search_url, headers={"User-Agent": USER_AGENT}, timeout=10)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    links = []
+    for a in soup.find_all("a", class_="result__a", href=True):
+        links.append(extract_real_url(a['href']))
+        if len(links) >= max_results:
+            break
+    return links
+
+def scrape_page(url):
+    resp = requests.get(url, headers={"User-Agent": USER_AGENT}, timeout=10)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    paragraphs = [p.get_text(strip=True) for p in soup.find_all("p")]
+    return "\n".join(paragraphs)
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    result = ""
+    translated = ""
+    if request.method == "POST":
+        query = request.form.get("query")
+        urls = search_urls(query)
+        texts = [scrape_page(url) for url in urls]
+        result = "\n\n".join(texts)
+        translated = GoogleTranslator(source='auto', target='en').translate(result)
+    return render_template("index.html", result=result, translated=translated)
+
+if __name__ == "__main__":
+    app.run(debug=True)
