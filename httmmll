@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>网页抓取翻译器</title>
+</head>
+<body>
+    <h1>网页抓取翻译器</h1>
+    <form method="POST">
+        <input type="text" name="query" placeholder="输入关键词或网址">
+        <button type="submit">搜索</button>
+    </form>
+
+    {% if result %}
+        <h2>中文内容</h2>
+        <pre>{{ result }}</pre>
+
+        <h2>英文翻译</h2>
+        <pre>{{ translated }}</pre>
+    {% endif %}
+</body>
+</html>
